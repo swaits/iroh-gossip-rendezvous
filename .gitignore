@@ -1,0 +1,37 @@
+# Build artifacts
+/target
+/fuzz/target
+Cargo.lock.bak
+
+# Tool output directories
+/mutants.out
+/mutants.out.old
+/mutants.out.*/
+/fuzz/corpus
+/fuzz/artifacts
+/fuzz/coverage
+
+# Coverage reports
+lcov.info
+*.profraw
+*.profdata
+/target/llvm-cov
+/target/criterion
+
+# Nextest JUnit output
+/target/nextest
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# jj (Jujutsu) workspace
+.jj/
+
+# Direnv
+.envrc
+.direnv/

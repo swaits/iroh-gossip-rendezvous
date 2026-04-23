@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a new feature or API change.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What are you trying to accomplish? What's the problem?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What API / behavior would solve this? Alternatives you've considered?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - label: This would require a breaking API change (major version bump).
+          required: false
+        - label: This would change the wire format (major version bump, incompatible with older releases).
+          required: false

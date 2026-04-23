@@ -1,0 +1,17 @@
+# nextest profiles — https://nexte.st/book/configuration.html
+
+[profile.default]
+# Tests that run longer than this are a warning, not a failure.
+slow-timeout = { period = "60s", terminate-after = 3 }
+# Retries disabled locally; flakes should be fixed, not papered over.
+retries = 0
+
+[profile.ci]
+# CI uses JUnit for GitHub Actions + default human reporter.
+retries = { backoff = "fixed", count = 2, delay = "1s" }
+failure-output = "immediate-final"
+success-output = "never"
+fail-fast = false
+
+[profile.ci.junit]
+path = "junit.xml"

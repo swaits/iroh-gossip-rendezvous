@@ -1,0 +1,54 @@
+name: Bug report
+description: Something isn't working as expected.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: rust-version
+    attributes:
+      label: Rust version (`rustc --version`)
+      placeholder: "1.93.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Linux, macOS, Windows, Other]
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Ideally a self-contained snippet + steps. Logs with `RUST_LOG=iroh_gossip_rendezvous=debug` help.
+      render: rust
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: I can reproduce on the latest published release.
+          required: false

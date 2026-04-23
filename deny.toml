@@ -1,0 +1,73 @@
+# cargo-deny configuration.
+# https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "aarch64-apple-darwin" },
+    { triple = "x86_64-pc-windows-msvc" },
+]
+all-features = true
+
+# ── Advisories (RUSTSEC) ───────────────────────────────────────────
+
+[advisories]
+version = 2
+yanked = "deny"
+# Allow transitive "unmaintained" advisories that come via iroh's dep graph
+# and can't be fixed downstream. Re-evaluate on each iroh bump.
+# Note: cargo-deny and cargo-audit disagree on which advisories currently fire;
+# cargo-audit reports atomic-polyfill, cargo-deny's db may not. We list it here
+# for cargo-audit's benefit via deny.toml being the canonical source.
+ignore = [
+    # paste — no longer maintained. Pulled in via iroh → portmapper → netwatch
+    # → netlink-packet-core. No direct dep; stuck until iroh migrates.
+    "RUSTSEC-2024-0436",
+]
+
+# ── Licenses ───────────────────────────────────────────────────────
+
+[licenses]
+version = 2
+# MIT + Apache-2.0 + BSD-3-Clause + Unicode are the usual Rust-ecosystem set.
+# MPL-2.0 allowed (used by encoding_rs / webpki-roots transitively).
+# CDLA-Permissive-2.0 allowed (webpki-roots certs bundle).
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "MPL-2.0",
+    "CDLA-Permissive-2.0",
+    "CC0-1.0",
+    "0BSD",
+]
+# Reject GPL/AGPL/SSPL on the whole tree.
+confidence-threshold = 0.93
+
+# ── Bans ───────────────────────────────────────────────────────────
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+# Explicit allows for known good duplicates (iroh's dep graph has a few).
+allow = []
+deny = []
+# Accept some duplicate crate versions common in the iroh + tokio ecosystems.
+skip = []
+skip-tree = []
+
+# ── Sources ────────────────────────────────────────────────────────
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = []
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

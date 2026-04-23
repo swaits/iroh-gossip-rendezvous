@@ -1,0 +1,93 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 5 * * *" # 05:00 UTC daily
+  workflow_dispatch: {}
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  miri:
+    name: miri (sync modules)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+      - uses: Swatinem/rust-cache@v2
+      - name: miri on keys/wire/crypto/merge
+        env:
+          MIRIFLAGS: -Zmiri-disable-isolation
+        run: cargo +nightly miri test --lib keys:: wire:: crypto:: merge::
+
+  mutants:
+    name: cargo-mutants
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants,cargo-nextest
+      - run: cargo mutants --shard ${{ matrix.shard }}/4 --in-diff-base ""
+
+  fuzz-smoke:
+    name: fuzz smoke (60s / target)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - fuzz_decode_entries
+          - fuzz_wire_roundtrip
+          - fuzz_crypto_open
+          - fuzz_merge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+      - run: cd fuzz && cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=60
+
+  kani:
+    name: kani
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: model-checking/kani-github-action@v1
+        with:
+          args: "--harness merge_size_invariant --harness merge_age_invariant --harness merge_self_always_at_zero --harness wire_encode_decode_roundtrip --harness wire_decode_no_panic --harness crypto_epoch_of_no_overflow"
+
+  stateright-random:
+    name: stateright random N=6 K=3
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --test stateright_model --release --all-features -- random_large --ignored
+
+  bench:
+    name: criterion benches
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo bench --all-features

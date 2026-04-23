@@ -1,0 +1,165 @@
+[package]
+name = "iroh-gossip-rendezvous"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.93.0"
+authors = ["Stephen Waits <steve@waits.net>"]
+license = "MIT"
+description = "Passphrase-based rendezvous for iroh-gossip swarms via Mainline DHT"
+repository = "https://github.com/swaits/iroh-gossip-rendezvous"
+homepage = "https://github.com/swaits/iroh-gossip-rendezvous"
+keywords = ["iroh", "gossip", "dht", "mainline", "rendezvous"]
+categories = ["network-programming"]
+readme = "README.md"
+exclude = [
+    # Dev workflow / local tooling — never ship to crates.io.
+    ".jj/",
+    ".github/",
+    ".cargo/",
+    ".config/",
+    "deny.toml",
+    "justfile",
+    "CODEOWNERS",
+    # cargo-mutants output (gitignored but guard against leakage).
+    "mutants.out",
+    "mutants.out/**",
+    "mutants.out.old",
+    "mutants.out.old/**",
+    # cargo-fuzz workspace is a separate crate; corpus/artifacts are huge.
+    "fuzz/corpus",
+    "fuzz/corpus/**",
+    "fuzz/artifacts",
+    "fuzz/artifacts/**",
+    "fuzz/target",
+    "fuzz/target/**",
+    # Coverage output.
+    "lcov.info",
+    "*.profraw",
+    "*.profdata",
+]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[features]
+# Discrete-event simulator + test-support hooks that expose `pub(crate)`
+# internals (InMemoryDht, DhtSlots, ProtoState, merge / wire helpers).
+# Not part of the stable public API; may shift between 0.x releases.
+sim = []
+
+# Enables Kani bounded-model-checking proof harnesses (src/kani_proofs.rs).
+# Off-by-default; only set when running `cargo kani`.
+kani = []
+
+# Makes Miri-incompatible tests (anything touching tokio I/O, the real
+# Mainline DHT, or std::time::Instant-from-the-clock) opt-in. Enable with
+# `cargo +nightly miri test --lib --features miri-compat`.
+miri-compat = []
+
+# Opt-in live tests against the real Mainline DHT. Flaky, network-dependent.
+# Used by the nightly `mainline-live` CI lane only.
+mainline-live = []
+
+# Extension of the public Builder that accepts an injected DhtSlots trait
+# object for integration tests. Off-by-default so the public API stays tight;
+# tests re-enable it via `dev-dependencies`.
+test-support = ["sim"]
+
+[[example]]
+name = "simulator"
+required-features = ["sim"]
+
+[[bench]]
+name = "merge"
+harness = false
+
+[[bench]]
+name = "crypto"
+harness = false
+
+[[bench]]
+name = "wire"
+harness = false
+
+[[bench]]
+name = "keys"
+harness = false
+
+[dependencies]
+iroh = "0.98"
+iroh-gossip = "0.98"
+mainline = { version = "6", features = ["async"] }
+# Crypto stack — several deps are pinned by transitive constraints. See
+# `UPGRADING.md` or the release notes on any bump.
+#
+# * `ed25519-dalek = 2`: 3.0 is pre-release (`3.0.0-pre.6`). Move to 3 once stable.
+# * `chacha20poly1305 = 0.10`: 0.11 is `rc`. Same story.
+# * `sha2 = 0.10` / `hkdf = 0.12`: **pinned by `mainline`**, which in turn
+#   hard-pins `digest = "=0.11.0-rc.9"`. Bumping sha2 or hkdf requires either
+#   a mainline release that relaxes the pin, or a coordinated fork. Attempting
+#   `sha2 = 0.11` / `hkdf = 0.13` fails cargo-outdated and `cargo check`.
+# * `rand = 0.9`: 0.10 is coordinated with iroh + bridge; hold until iroh bumps.
+ed25519-dalek = "2"
+chacha20poly1305 = "0.10"
+hkdf = "0.12"
+sha2 = "0.10"
+blake3 = "1"
+zeroize = { version = "1", features = ["derive"] }
+rand = "0.9"
+bytes = "1"
+tokio = { version = "1", features = ["time", "sync", "rt", "macros"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+futures-lite = "2"
+tracing = "0.1"
+thiserror = "2"
+async-trait = "0.1"
+# Provides the `#[mutants::skip]` attribute for targeted cargo-mutants
+# exclusions on code paths that are fundamentally async + network-bound.
+mutants = "0.0.4"
+
+[dev-dependencies]
+proptest = "1"
+tokio = { version = "1", features = ["full", "test-util"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+hex = "0.4"
+criterion = { version = "0.8", features = ["html_reports"] }
+arbitrary = { version = "1", features = ["derive"] }
+hex-literal = "1"
+stateright = "0.31"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+# Stylistic lints we don't want to fight:
+similar_names = "allow"
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+cast_possible_wrap = "allow"
+redundant_pub_crate = "allow"
+multiple_crate_versions = "allow"
+doc_markdown = "allow"
+collapsible_if = "allow"
+if_not_else = "allow"
+map_unwrap_or = "allow"
+missing_const_for_fn = "allow"
+needless_pass_by_value = "allow"
+redundant_clone = "allow"
+significant_drop_tightening = "allow"
+single_match_else = "allow"
+struct_field_names = "allow"
+too_many_lines = "allow"
+must_use_candidate = "allow"
+too_long_first_doc_paragraph = "allow"

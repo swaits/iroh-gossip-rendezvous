@@ -1,0 +1,41 @@
+# cargo-mutants configuration.
+# https://mutants.rs/reference.html
+
+# Use nextest for faster mutation runs.
+test_tool = "nextest"
+
+# Async tests + crypto work takes longer under mutation load.
+timeout_multiplier = 3.0
+
+# Skip paths that either can't be meaningfully mutated or are covered by
+# other tools:
+#   - sim_impl.rs: simulator is exercised via the simulator example, not
+#     unit tests; mutation scores would mislead.
+#   - dht/mainline.rs: covered only by the nightly mainline-live lane.
+#   - kani_proofs.rs: proof harnesses, NOT runtime code. They're gated on
+#     `#[cfg(kani)]` and only built by Kani itself; our test suite never
+#     touches them, so every mutation would "survive" trivially. Mutation
+#     testing of proof harnesses is a category error — the proofs verify
+#     invariants in the production code, not the other way around.
+#   - examples: not part of the library surface.
+#   - tests/*: the tests themselves.
+#   - benches: not on the hot path.
+exclude_globs = [
+    "src/sim_impl.rs",
+    "src/dht/mainline.rs",
+    "src/kani_proofs.rs",
+    "examples/**/*",
+    "tests/**/*",
+    "benches/**/*",
+]
+
+# Acceptable mutation classes: arithmetic, logical, comparison, return-value
+# substitution. Default set is fine.
+
+# Fail if any mutant survives on the algorithmic core after the full run.
+# Acceptance target (see PROTOCOL.md + CHANGELOG):
+#   * keys, wire, crypto, merge: ≥ 80% caught.
+#   * crate-wide: ≥ 70% caught (error-logging mutants in protocol.rs
+#     often survive without affecting correctness).
+
+# Run via `just mutants` locally; CI shards across jobs.

@@ -1,0 +1,47 @@
+[package]
+name = "iroh-gossip-rendezvous-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+iroh-gossip-rendezvous = { path = "..", features = ["sim"] }
+rand = "0.9"
+ed25519-dalek = "2"
+
+[[bin]]
+name = "fuzz_decode_entries"
+path = "fuzz_targets/fuzz_decode_entries.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_crypto_open"
+path = "fuzz_targets/fuzz_crypto_open.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_merge"
+path = "fuzz_targets/fuzz_merge.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_wire_roundtrip"
+path = "fuzz_targets/fuzz_wire_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+members = ["."]
+# Keep the fuzz workspace isolated from the parent crate's target dir.
