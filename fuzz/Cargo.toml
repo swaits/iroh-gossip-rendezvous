@@ -12,7 +12,7 @@ libfuzzer-sys = "0.4"
 arbitrary = { version = "1", features = ["derive"] }
 iroh-gossip-rendezvous = { path = "..", features = ["sim"] }
 rand = "0.9"
-ed25519-dalek = "2"
+ed25519-dalek = "3"
 
 [[bin]]
 name = "fuzz_decode_entries"
