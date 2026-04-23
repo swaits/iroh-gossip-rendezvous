@@ -162,4 +162,8 @@ single_match_else = "allow"
 struct_field_names = "allow"
 too_many_lines = "allow"
 must_use_candidate = "allow"
+# Fires on Rust 1.95+ suggesting `Duration::from_mins(5)`, but `from_mins`
+# was only stabilized in 1.95 — using it would break our 1.93.0 MSRV.
+# Allow crate-wide until MSRV reaches 1.95.
+duration_suboptimal_units = "allow"
 too_long_first_doc_paragraph = "allow"
