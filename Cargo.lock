@@ -2100,7 +2100,7 @@ dependencies = [
  "mainline",
  "mutants",
  "proptest",
- "rand 0.9.4",
+ "rand 0.10.1",
  "sha2 0.10.9",
  "stateright",
  "thiserror 2.0.18",
