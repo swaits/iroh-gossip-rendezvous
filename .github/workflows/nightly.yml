@@ -25,7 +25,9 @@ jobs:
       - name: miri on keys/wire/crypto/merge
         env:
           MIRIFLAGS: -Zmiri-disable-isolation
-        run: cargo +nightly miri test --lib keys:: wire:: crypto:: merge::
+        # Quoted because YAML plain scalars can't contain `: ` sequences
+        # without being misparsed as mapping entries.
+        run: "cargo +nightly miri test --lib keys:: wire:: crypto:: merge::"
 
   mutants:
     name: cargo-mutants
