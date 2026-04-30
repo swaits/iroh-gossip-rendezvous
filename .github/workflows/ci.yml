@@ -94,7 +94,7 @@ jobs:
           tool: cargo-llvm-cov,cargo-nextest
       - name: lcov
         run: cargo llvm-cov nextest --all-features --lcov --output-path lcov.info
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           fail_ci_if_error: false
