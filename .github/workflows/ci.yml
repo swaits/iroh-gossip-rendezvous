@@ -62,7 +62,9 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-audit
-      - run: cargo audit
+      # cargo-audit doesn't read deny.toml, so mirror its ignore list here.
+      # See deny.toml [advisories] for rationale on each ID.
+      - run: cargo audit --ignore RUSTSEC-2026-0119 --ignore RUSTSEC-2026-0120
 
   # ── Public-API semver compliance (PR only) ────────────────────────
   semver:

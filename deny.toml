@@ -15,15 +15,23 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
-# Allow transitive "unmaintained" advisories that come via iroh's dep graph
-# and can't be fixed downstream. Re-evaluate on each iroh bump.
-# Note: cargo-deny and cargo-audit disagree on which advisories currently fire;
-# cargo-audit reports atomic-polyfill, cargo-deny's db may not. We list it here
-# for cargo-audit's benefit via deny.toml being the canonical source.
+# Allow transitive advisories that come via iroh's dep graph and can't be
+# fixed downstream. Re-evaluate on each iroh bump.
+# Note: cargo-audit does NOT read this file — mirror any vulnerability-class
+# entries below into the `cargo audit --ignore …` flag list in ci.yml.
 ignore = [
     # paste — no longer maintained. Pulled in via iroh → portmapper → netwatch
     # → netlink-packet-core. No direct dep; stuck until iroh migrates.
     "RUSTSEC-2024-0436",
+    # hickory-proto 0.26.0-beta.4 — CPU exhaustion via O(n²) name compression
+    # during message encoding. Transitive via iroh → hickory-resolver
+    # (=0.26.0-beta.4, hard-pinned). Fixed in hickory 0.26.1; unblock when
+    # iroh releases a version that bumps the pin.
+    "RUSTSEC-2026-0119",
+    # hickory-net 0.26.0-beta.4 — NSEC3 closest-encloser proof enters an
+    # unbounded loop on cross-zone responses (OOM in release builds; panic
+    # in debug). Same transitive path and same iroh pin as RUSTSEC-2026-0119.
+    "RUSTSEC-2026-0120",
 ]
 
 # ── Licenses ───────────────────────────────────────────────────────
