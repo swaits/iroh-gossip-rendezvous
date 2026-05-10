@@ -6,6 +6,32 @@ format is based on [Keep a Changelog], and this project adheres to
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-05-11
+
+### Changed
+
+- **Breaking:** bumped `iroh` to `=1.0.0-rc.0` and `iroh-gossip` to `0.99`.
+  Public API exposes iroh types (`Endpoint`, `SecretKey`, `PublicKey`,
+  `iroh_gossip::api::*`), so consumers must move to the iroh 1.0-rc.0
+  ecosystem in lockstep.
+- **Breaking:** bumped `ed25519-dalek` to `=3.0.0-pre.7` to match
+  iroh-base 1.0.0-rc.0. The version is pinned with `=` because iroh-base
+  itself hard-pins the pre-release; drop the `=` when iroh-base relaxes.
+- Loosened the `sha2` pin from `=0.11.0-rc.5` to `^0.11`. iroh-base
+  1.0.0-rc.0 no longer hard-pins the rc, so we follow the same
+  caret-range convention as the rest of the crypto stack.
+- Bumped transitive crypto deps via `cargo update`: `mainline` 6.0.1 →
+  6.1.2, plus the usual sweep of tokio/hyper/rustls patches.
+
+### Notes
+
+- No source changes were required: the iroh/gossip APIs we touch
+  (`Endpoint::builder`, `endpoint::presets::N0`, `SecretKey::generate`,
+  `PublicKey`, `iroh_gossip::api::{Event, GossipSender}`) survived the
+  bump verbatim.
+- All 96 lib tests, property tests, and integration tests pass against
+  the new stack.
+
 ## [0.1.0] — 2026-04-22
 
 First public release. Passphrase-based peer rendezvous for iroh-gossip

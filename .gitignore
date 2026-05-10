@@ -32,6 +32,9 @@ lcov.info
 # jj (Jujutsu) workspace
 .jj/
 
+# Claude Code session state
+.claude/
+
 # Direnv
 .envrc
 .direnv/

@@ -1,6 +1,6 @@
 [package]
 name = "iroh-gossip-rendezvous"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.93.0"
 authors = ["Stephen Waits <steve@waits.net>"]
@@ -17,6 +17,7 @@ exclude = [
     ".github/",
     ".cargo/",
     ".config/",
+    ".claude/",
     "deny.toml",
     "justfile",
     "CODEOWNERS",
@@ -87,24 +88,22 @@ name = "keys"
 harness = false
 
 [dependencies]
-iroh = "0.98"
-iroh-gossip = "0.98"
+iroh = "=1.0.0-rc.0"
+iroh-gossip = "0.99"
 mainline = { version = "6", features = ["async"] }
 # Crypto stack — several deps are pinned by transitive constraints. See
 # `UPGRADING.md` or the release notes on any bump.
 #
-# * `ed25519-dalek = 2`: 3.0 is pre-release (`3.0.0-pre.6`). Move to 3 once stable.
+# * `ed25519-dalek = "=3.0.0-pre.7"`: matched to iroh 1.0.0-rc.0 / iroh-base 1.0.0-rc.0.
 # * `chacha20poly1305 = 0.10`: 0.11 is `rc`. Same story.
-# * `sha2 = "=0.11.0-rc.5"`: hard-pinned by `iroh-base` (which depends on
-#   `sha2 = "=0.11.0-rc.5"`). Drop the `=` once iroh-base relaxes the pin.
 # * `hkdf = 0.13`: works as of mainline 6.1.2, which loosened its `digest`
 #   pin to `0.11`. The HKDF-SHA256 KAT covers compatibility — bump only if
 #   it still passes byte-for-byte.
 # * `rand = 0.9`: 0.10 is coordinated with iroh + bridge; hold until iroh bumps.
-ed25519-dalek = "2"
+ed25519-dalek = "=3.0.0-pre.7"
 chacha20poly1305 = "0.10"
 hkdf = "0.13"
-sha2 = "=0.11.0-rc.5"
+sha2 = "0.11"
 blake3 = "1"
 zeroize = { version = "1", features = ["derive"] }
 rand = "0.9"
