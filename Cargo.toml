@@ -95,15 +95,16 @@ mainline = { version = "6", features = ["async"] }
 #
 # * `ed25519-dalek = 2`: 3.0 is pre-release (`3.0.0-pre.6`). Move to 3 once stable.
 # * `chacha20poly1305 = 0.10`: 0.11 is `rc`. Same story.
-# * `sha2 = 0.10` / `hkdf = 0.12`: **pinned by `mainline`**, which in turn
-#   hard-pins `digest = "=0.11.0-rc.9"`. Bumping sha2 or hkdf requires either
-#   a mainline release that relaxes the pin, or a coordinated fork. Attempting
-#   `sha2 = 0.11` / `hkdf = 0.13` fails cargo-outdated and `cargo check`.
+# * `sha2 = "=0.11.0-rc.5"`: hard-pinned by `iroh-base` (which depends on
+#   `sha2 = "=0.11.0-rc.5"`). Drop the `=` once iroh-base relaxes the pin.
+# * `hkdf = 0.13`: works as of mainline 6.1.2, which loosened its `digest`
+#   pin to `0.11`. The HKDF-SHA256 KAT covers compatibility — bump only if
+#   it still passes byte-for-byte.
 # * `rand = 0.9`: 0.10 is coordinated with iroh + bridge; hold until iroh bumps.
 ed25519-dalek = "2"
 chacha20poly1305 = "0.10"
-hkdf = "0.12"
-sha2 = "0.10"
+hkdf = "0.13"
+sha2 = "=0.11.0-rc.5"
 blake3 = "1"
 zeroize = { version = "1", features = ["derive"] }
 rand = "0.9"
