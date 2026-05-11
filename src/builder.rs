@@ -33,6 +33,12 @@ pub const DEFAULT_EPOCH_WRITES: u64 = 64;
 pub const DEFAULT_WRITE_PERIOD: Duration = Duration::from_secs(300);
 /// T_h — mean heal-loop period.
 pub const DEFAULT_HEAL_PERIOD: Duration = Duration::from_secs(30);
+/// T_f — write-loop period while `DhtStatus::PublishFailing`. Used in
+/// place of `T_w` until a publish succeeds; the probability gate is also
+/// skipped during recovery so every tick attempts a write. Bounds the
+/// recovery latency from a transient DHT failure to roughly this period
+/// (± jitter) regardless of neighbor count.
+pub const DEFAULT_FAILURE_RETRY_PERIOD: Duration = Duration::from_secs(15);
 /// σ — jitter factor (± fraction of the period).
 pub const DEFAULT_JITTER: f32 = 0.5;
 
@@ -49,6 +55,7 @@ pub struct Builder {
     epoch_size: u64,
     write_period: Duration,
     heal_period: Duration,
+    failure_retry_period: Duration,
     jitter: f32,
     wait_for_first_neighbor: Option<Duration>,
     /// Test-only: inject a custom DhtSlots backend (e.g., InMemoryDht).
@@ -71,6 +78,7 @@ impl Default for Builder {
             epoch_size: DEFAULT_EPOCH_WRITES,
             write_period: DEFAULT_WRITE_PERIOD,
             heal_period: DEFAULT_HEAL_PERIOD,
+            failure_retry_period: DEFAULT_FAILURE_RETRY_PERIOD,
             jitter: DEFAULT_JITTER,
             wait_for_first_neighbor: None,
             #[cfg(feature = "test-support")]
@@ -153,6 +161,21 @@ impl Builder {
     #[must_use]
     pub fn heal_period(mut self, period: Duration) -> Self {
         self.heal_period = period;
+        self
+    }
+
+    /// Override `T_f` — the write-loop period used while
+    /// [`DhtStatus::PublishFailing`](crate::state::DhtStatus::PublishFailing).
+    /// Default 15 seconds.
+    ///
+    /// While failing, the probability gate `1/(n+1)` is bypassed and a
+    /// write is attempted every tick. Returning to
+    /// [`DhtStatus::Ready`](crate::state::DhtStatus::Ready) on a
+    /// successful publish restores the steady-state `write_period`
+    /// cadence and re-engages the gate.
+    #[must_use]
+    pub fn failure_retry_period(mut self, period: Duration) -> Self {
+        self.failure_retry_period = period;
         self
     }
 
@@ -257,6 +280,7 @@ impl Builder {
             epoch_size: self.epoch_size,
             write_period: self.write_period,
             heal_period: self.heal_period,
+            failure_retry_period: self.failure_retry_period,
             jitter: self.jitter,
         };
 

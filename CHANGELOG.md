@@ -6,6 +6,34 @@ format is based on [Keep a Changelog], and this project adheres to
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-05-11
+
+### Changed
+
+- **Fast recovery from `DhtStatus::PublishFailing`.** The write loop
+  previously slept the full `write_period` (default 5 min) between
+  every iteration and still applied the `1/(n+1)` probability gate,
+  so a node stuck in `PublishFailing` could wait many minutes — even
+  half an hour with a populated active view — before retrying. The
+  loop now checks `dht_status` before sleeping: while failing, it
+  uses the new `failure_retry_period` (default 15 s) and bypasses
+  the gate, so every tick attempts a write until one succeeds. On
+  success the steady-state cadence and gate are restored.
+
+### Added
+
+- `Builder::failure_retry_period(Duration)` — override the recovery
+  cadence (additive, non-breaking). Public constant
+  `DEFAULT_FAILURE_RETRY_PERIOD = 15 s`.
+
+### Rationale
+
+The probability gate exists to keep N healthy publishers from
+storming the DHT with redundant writes — but once *our* publish has
+failed, redundancy is irrelevant; we need to land *one* successful
+write. Skipping the gate while failing turns the recovery time into
+a function of `failure_retry_period`, not of `(n + 1) × write_period`.
+
 ## [0.2.0] — 2026-05-11
 
 ### Changed

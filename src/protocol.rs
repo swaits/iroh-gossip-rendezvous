@@ -48,6 +48,12 @@ pub(crate) struct ProtocolConfig {
     pub epoch_size: u64,
     pub write_period: Duration,
     pub heal_period: Duration,
+    /// Sleep between write-loop ticks while `dht_status == PublishFailing`.
+    /// Used in place of `write_period` to recover from a failed publish
+    /// faster than the steady-state cadence allows. The probability gate
+    /// is also skipped while failing — every tick attempts a write until
+    /// one succeeds.
+    pub failure_retry_period: Duration,
     pub jitter: f32,
 }
 
@@ -376,19 +382,39 @@ pub(crate) fn spawn_loops(
                     first_iter = false;
                     true
                 } else {
-                    let sleep = jittered(state.config.write_period, state.config.jitter);
+                    // While the last publish is failing, retry on the
+                    // shorter `failure_retry_period` cadence and bypass
+                    // the `1/(n+1)` probability gate — the gate exists
+                    // to avoid swarm-wide write storms when N is large
+                    // and the DHT is healthy, but once *our* publish
+                    // has failed we should retry unconditionally until
+                    // it succeeds.
+                    let failing = matches!(
+                        state.observable.lock().map(|s| s.dht_status),
+                        Ok(DhtStatus::PublishFailing)
+                    );
+                    let period = if failing {
+                        state.config.failure_retry_period
+                    } else {
+                        state.config.write_period
+                    };
+                    let sleep = jittered(period, state.config.jitter);
                     tokio::select! {
                         () = tokio::time::sleep(sleep) => {}
                         () = cancel.cancelled() => break,
                     }
-                    // Write with probability 1/(n+1). Scope the (non-Send)
-                    // ThreadRng so it doesn't live across the await.
-                    let n = gossip.neighbors().len();
-                    let r = {
-                        let mut rng = rand::rng();
-                        rng.random::<f32>()
-                    };
-                    should_fire_write(r, n)
+                    if failing {
+                        true
+                    } else {
+                        // Scope the (non-Send) ThreadRng so it doesn't
+                        // live across the await.
+                        let n = gossip.neighbors().len();
+                        let r = {
+                            let mut rng = rand::rng();
+                            rng.random::<f32>()
+                        };
+                        should_fire_write(r, n)
+                    }
                 };
                 if should_write {
                     write_once(&state, dht.as_ref(), gossip.as_ref()).await;
@@ -472,6 +498,61 @@ mod tests {
         }
     }
 
+    /// Fault-injecting `DhtSlots`. Fails the first `fail_writes` write calls
+    /// (counting attempts, not slots), then delegates to an inner
+    /// [`InMemoryDht`]. Reads always delegate.
+    struct FaultyDht {
+        inner: InMemoryDht,
+        remaining_failures: Mutex<usize>,
+        write_attempts: Arc<std::sync::atomic::AtomicUsize>,
+    }
+
+    impl FaultyDht {
+        fn new(fail_writes: usize) -> (Self, Arc<std::sync::atomic::AtomicUsize>) {
+            let attempts = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            (
+                Self {
+                    inner: InMemoryDht::new(),
+                    remaining_failures: Mutex::new(fail_writes),
+                    write_attempts: attempts.clone(),
+                },
+                attempts,
+            )
+        }
+    }
+
+    #[async_trait]
+    impl DhtSlots for FaultyDht {
+        async fn read(
+            &self,
+            slot: crate::dht::SlotKey,
+        ) -> Result<Option<crate::dht::SlotRecord>, crate::dht::DhtError> {
+            self.inner.read(slot).await
+        }
+
+        async fn write(
+            &self,
+            slot: crate::dht::SlotKey,
+            record: crate::dht::SlotRecord,
+        ) -> Result<(), crate::dht::DhtError> {
+            self.write_attempts
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let should_fail = {
+                let mut r = self.remaining_failures.lock().unwrap();
+                if *r > 0 {
+                    *r -= 1;
+                    true
+                } else {
+                    false
+                }
+            };
+            if should_fail {
+                return Err(crate::dht::DhtError::Transport("injected".into()));
+            }
+            self.inner.write(slot, record).await
+        }
+    }
+
     fn test_config(self_id: [u8; 32], shards: usize) -> ProtocolConfig {
         ProtocolConfig {
             self_id,
@@ -482,6 +563,7 @@ mod tests {
             epoch_size: 64,
             write_period: Duration::from_secs(1),
             heal_period: Duration::from_secs(1),
+            failure_retry_period: Duration::from_millis(50),
             jitter: 0.5,
         }
     }
@@ -565,6 +647,53 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[tokio::test]
+    async fn write_loop_recovers_from_publish_failing_on_short_period() {
+        // Loop should retry on `failure_retry_period` (not `write_period`)
+        // and bypass the `1/(n+1)` gate while `DhtStatus::PublishFailing`.
+        // Setup: write_period=10s, failure_retry_period=30ms, dht fails
+        // first 3 writes then succeeds. Within a few hundred ms we should
+        // see ≥4 attempts (3 fails + 1 success) and status == Ready.
+
+        let self_id = [42u8; 32];
+        let mut config = test_config(self_id, 3);
+        config.write_period = Duration::from_secs(10);
+        config.heal_period = Duration::from_secs(10);
+        config.failure_retry_period = Duration::from_millis(30);
+        // No jitter so the test is deterministic.
+        config.jitter = 0.0;
+
+        let state = Arc::new(test_state(config));
+        let (faulty, attempts) = FaultyDht::new(3);
+        let dht: Arc<dyn DhtSlots> = Arc::new(faulty);
+        let (gossip_view, _joined) = MockGossip::new(vec![]);
+        let gossip: Arc<dyn GossipView> = Arc::new(gossip_view);
+        let cancel = CancellationToken::new();
+
+        let mut tasks = spawn_loops(state.clone(), dht.clone(), gossip.clone(), cancel.clone());
+
+        // 4 × 30ms = 120ms minimum. Give 500ms — comfortably above the
+        // retry budget, comfortably below `write_period`. If the loop
+        // were waiting on `write_period` (10s) we'd see only 1 attempt.
+        tokio::time::sleep(Duration::from_millis(500)).await;
+
+        let made = attempts.load(std::sync::atomic::Ordering::SeqCst);
+        let status = state.observable.lock().unwrap().dht_status;
+
+        cancel.cancel();
+        while tasks.join_next().await.is_some() {}
+
+        assert!(
+            made >= 4,
+            "expected ≥4 write attempts (3 fails + 1 success) within 500ms; got {made}"
+        );
+        assert_eq!(
+            status,
+            DhtStatus::Ready,
+            "status should flip to Ready after the 4th write succeeded"
+        );
     }
 
     #[tokio::test]
