@@ -278,6 +278,7 @@ fn random_large() {
         .checker()
         .threads(num_cpus())
         .target_max_depth(50)
+        .target_state_count(1_000_000)
         .spawn_simulation(0, stateright::UniformChooser)
         .join()
         .assert_properties();
