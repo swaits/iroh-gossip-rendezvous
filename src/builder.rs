@@ -474,7 +474,9 @@ mod tests {
     fn failure_retry_period_setter_stores_exact_value() {
         let d = Duration::from_millis(42);
         assert_eq!(
-            Builder::default().failure_retry_period(d).failure_retry_period,
+            Builder::default()
+                .failure_retry_period(d)
+                .failure_retry_period,
             d
         );
     }
