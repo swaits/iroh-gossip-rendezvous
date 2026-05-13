@@ -7,6 +7,12 @@ test_tool = "nextest"
 # Async tests + crypto work takes longer under mutation load.
 timeout_multiplier = 3.0
 
+# Enable `test-support` so cfg-gated setters (e.g. Builder::dht_backend) and
+# the integration tests that exercise them are part of the mutation surface.
+# Without this, dht_backend mutations always "survive" trivially because the
+# method isn't compiled in.
+additional_cargo_args = ["--features", "test-support"]
+
 # Skip paths that either can't be meaningfully mutated or are covered by
 # other tools:
 #   - sim_impl.rs: simulator is exercised via the simulator example, not

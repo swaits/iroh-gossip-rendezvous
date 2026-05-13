@@ -471,6 +471,28 @@ mod tests {
     }
 
     #[test]
+    fn failure_retry_period_setter_stores_exact_value() {
+        let d = Duration::from_millis(42);
+        assert_eq!(
+            Builder::default().failure_retry_period(d).failure_retry_period,
+            d
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "test-support")]
+    fn dht_backend_setter_stores_value() {
+        use std::sync::Arc;
+
+        use crate::sim::InMemoryDht;
+        let dht = Arc::new(InMemoryDht::new());
+        let before = Builder::default();
+        let after = Builder::default().dht_backend(dht);
+        assert!(before.dht_backend.is_none());
+        assert!(after.dht_backend.is_some());
+    }
+
+    #[test]
     fn jitter_setter_stores_exact_value() {
         let b = Builder::default().jitter(0.25);
         assert!((b.jitter - 0.25).abs() < f32::EPSILON);
