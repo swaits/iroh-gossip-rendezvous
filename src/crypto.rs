@@ -188,7 +188,7 @@ mod tests {
         let wk = key();
         let ct = seal(&wk, b"", 0, 64).unwrap();
         let back = open(&wk, &ct, 0, 64).unwrap();
-        assert!(back.is_empty());
+        assert_eq!(back, Vec::new());
     }
 
     #[test]

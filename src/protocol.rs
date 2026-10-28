@@ -29,6 +29,7 @@ use crate::state::{DhtStatus, RendezvousState};
 use crate::wire::{decode_entries, encode_entries};
 
 /// Gossip-layer view used by the protocol loops. Swappable for the simulator.
+#[allow(clippy::double_must_use)] // async_trait adds must_use to the desugared fns
 #[async_trait]
 pub(crate) trait GossipView: Send + Sync + 'static {
     /// Snapshot of the local gossip active-view set (excluding self).

@@ -56,7 +56,7 @@ pub fn decode_entries(bytes: &[u8]) -> Result<Vec<Entry>> {
         return Err(Error::MalformedRecord("too many entries (> 27)"));
     }
     let mut out = Vec::with_capacity(n);
-    for chunk in bytes.chunks_exact(ENTRY_LEN) {
+    for chunk in bytes.as_chunks::<ENTRY_LEN>().0 {
         let mut id = [0u8; 32];
         id.copy_from_slice(&chunk[..32]);
         let age = chunk[32];
@@ -105,7 +105,7 @@ mod tests {
         let encoded = encode_entries(&[]);
         assert_eq!(encoded.len(), 0);
         let decoded = decode_entries(&encoded).unwrap();
-        assert!(decoded.is_empty());
+        assert_eq!(decoded, Vec::new());
     }
 
     #[test]

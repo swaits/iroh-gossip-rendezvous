@@ -49,6 +49,7 @@ pub enum DhtError {
 
 /// Two primitives: read the latest value at a slot, and write a new value
 /// (signed, with a monotonic sequence number).
+#[allow(clippy::double_must_use)] // async_trait adds must_use to the desugared fns
 #[async_trait]
 pub trait DhtSlots: Send + Sync + 'static {
     /// Read the most recent record at `slot`. Returns `Ok(None)` if the slot
