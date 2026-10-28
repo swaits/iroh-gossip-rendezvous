@@ -17,6 +17,13 @@ format is based on [Keep a Changelog], and this project adheres to
 - `Builder::gossip(endpoint, gossip)` attaches rendezvous to an application
   Router without taking ownership of its accept loop, actor, or endpoint.
 
+### Fixed
+
+- Event subscriptions close when their gossip source stops, including
+  subscriptions created after shutdown.
+- Shutdown cancels in-flight DHT and gossip maintenance so pending work
+  cannot prevent the background tasks from draining.
+
 ## [0.2.1] — 2026-05-11
 
 ### Changed
