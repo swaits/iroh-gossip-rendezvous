@@ -12,6 +12,11 @@ format is based on [Keep a Changelog], and this project adheres to
   and ed25519-dalek 3 with their default features. Consumers using the
   exposed Iroh types must upgrade together.
 
+### Added
+
+- `Builder::gossip(endpoint, gossip)` attaches rendezvous to an application
+  Router without taking ownership of its accept loop, actor, or endpoint.
+
 ## [0.2.1] — 2026-05-11
 
 ### Changed
