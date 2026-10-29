@@ -64,7 +64,7 @@ jobs:
           tool: cargo-audit
       # cargo-audit doesn't read deny.toml, so mirror its ignore list here.
       # See deny.toml [advisories] for rationale on each ID.
-      - run: cargo audit --ignore RUSTSEC-2026-0119 --ignore RUSTSEC-2026-0120
+      - run: cargo audit --ignore RUSTSEC-2026-0119 --ignore RUSTSEC-2026-0120 --ignore RUSTSEC-2024-0436 --ignore RUSTSEC-2026-0253
 
   # ── Public-API semver compliance (PR only) ────────────────────────
   semver:

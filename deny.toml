@@ -32,6 +32,10 @@ ignore = [
     # unbounded loop on cross-zone responses (OOM in release builds; panic
     # in debug). Same transitive path and same iroh pin as RUSTSEC-2026-0119.
     "RUSTSEC-2026-0120",
+    # lru 0.16.4 — potential use-after-free in `LruCache::pop()` on panic
+    # paths. Pulled in via mainline 6.1.2, which requires lru 0.16.x; no
+    # fixed 0.16 release exists. Re-evaluate if mainline moves to lru 0.18.
+    "RUSTSEC-2026-0253",
 ]
 
 # ── Licenses ───────────────────────────────────────────────────────
